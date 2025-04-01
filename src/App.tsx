@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import TierSection from '../components/TierSection';
 import SearchBar from '../components/SearchBar';
+import SearchResults from '../components/SearchResults';
 import GuidedWorkflow from '../components/GuidedWorkflow';
 import { documentationData } from '../data/documentationData';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { ChecklistProgress } from '../types';
+import { enhancedSearch, SearchResultWithContext } from '../utils/searchUtils';
 import '../styles.css';
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('introduction');
   const [showGuidedWorkflow, setShowGuidedWorkflow] = useState<boolean>(false);
-  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<SearchResultWithContext[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [checklistProgress, setChecklistProgress] = useLocalStorage<ChecklistProgress>('checklistProgress', {});
 
@@ -23,31 +26,30 @@ const App: React.FC = () => {
     }
 
     setIsSearching(true);
-    const results: string[] = [];
-    
-    // Search through all sections
-    Object.entries(documentationData).forEach(([sectionId, section]) => {
-      if (
-        section.title.toLowerCase().includes(query.toLowerCase()) ||
-        section.content.toLowerCase().includes(query.toLowerCase())
-      ) {
-        results.push(sectionId);
-      }
-
-      // Search through subsections if they exist
-      if (section.subsections) {
-        Object.entries(section.subsections).forEach(([subsectionId, subsection]) => {
-          if (
-            subsection.title.toLowerCase().includes(query.toLowerCase()) ||
-            subsection.content.toLowerCase().includes(query.toLowerCase())
-          ) {
-            results.push(`${sectionId}-${subsectionId}`);
-          }
-        });
-      }
-    });
-
+    const results = enhancedSearch(documentationData, query);
     setSearchResults(results);
+  };
+
+  const handleSearchResultClick = (id: string) => {
+    // Clear search state completely
+    setSearchQuery('');
+    setIsSearching(false);
+    setSearchResults([]);
+    
+    // Set the active section
+    setActiveSection(id);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setIsSearching(false);
+    setSearchResults([]);
+  };
+
+  // Reset search when navigating via the sidebar
+  const handleSectionChange = (sectionId: string) => {
+    clearSearch();
+    setActiveSection(sectionId);
   };
 
   const toggleChecklistItem = (itemId: string) => {
@@ -88,7 +90,11 @@ const App: React.FC = () => {
       <header className="app-header">
         <h1>Generative AI Documentation Checklist</h1>
         <div className="header-controls">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar 
+            onSearch={handleSearch} 
+            query={searchQuery} 
+            setQuery={setSearchQuery} 
+          />
           <button 
             className="guided-workflow-btn"
             onClick={() => setShowGuidedWorkflow(!showGuidedWorkflow)}
@@ -115,7 +121,7 @@ const App: React.FC = () => {
         <Navigation 
           documentationData={documentationData} 
           activeSection={activeSection}
-          setActiveSection={setActiveSection}
+          setActiveSection={handleSectionChange}
           checklistProgress={checklistProgress}
         />
         
@@ -125,54 +131,16 @@ const App: React.FC = () => {
               documentationData={documentationData}
               checklistProgress={checklistProgress}
               toggleChecklistItem={toggleChecklistItem}
-              setActiveSection={setActiveSection}
+              setActiveSection={handleSectionChange}
               setShowGuidedWorkflow={setShowGuidedWorkflow}
             />
-          ) : isSearching ? (
-            <div className="search-results">
-              <h2>Search Results</h2>
-              {searchResults.length > 0 ? (
-                <ul>
-                  {searchResults.map(result => {
-                    const [sectionId, subsectionId] = result.split('-');
-                    const section = documentationData[sectionId];
-                    
-                    if (!subsectionId) {
-                      return (
-                        <li key={result}>
-                          <button 
-                            onClick={() => {
-                              setActiveSection(sectionId);
-                              setIsSearching(false);
-                              setSearchResults([]);
-                            }}
-                          >
-                            {section.title}
-                          </button>
-                        </li>
-                      );
-                    } else {
-                      const subsection = section.subsections?.[subsectionId];
-                      return subsection ? (
-                        <li key={result}>
-                          <button 
-                            onClick={() => {
-                              setActiveSection(`${sectionId}-${subsectionId}`);
-                              setIsSearching(false);
-                              setSearchResults([]);
-                            }}
-                          >
-                            {section.title} &gt; {subsection.title}
-                          </button>
-                        </li>
-                      ) : null;
-                    }
-                  })}
-                </ul>
-              ) : (
-                <p>No results found. Try a different search term.</p>
-              )}
-            </div>
+          ) : isSearching && searchQuery.trim() ? (
+            <SearchResults 
+              results={searchResults}
+              query={searchQuery}
+              onResultClick={handleSearchResultClick}
+              onClearSearch={clearSearch}
+            />
           ) : (
             <TierSection 
               sectionId={activeSection}
