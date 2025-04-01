@@ -51,6 +51,15 @@ yarn build
 
 The built files will be in the `dist` directory and can be served by any static file server.
 
+6. Deployment to git-pages:
+
+```bash
+npm run deploy
+# or
+yarn deploy
+```
+This will deploy the app to GitHub Pages. Make sure to set the `base` URL in `vite.config.js` to your repository name.
+
 ## Usage Guide
 
 1. **Start with the Guided Workflow** if you're new to AI documentation
