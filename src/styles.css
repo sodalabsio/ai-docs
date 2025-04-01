@@ -913,3 +913,63 @@ mark {
     margin-bottom: 12px;
   }
 }
+
+/* Add these styles for highlighted examples */
+
+/* Style for highlighted examples when navigating from search results */
+.highlighted-example {
+  animation: highlight-fade 2s ease-out;
+  scroll-margin-top: 20px; /* Add some space when scrolling to the example */
+  position: relative;
+}
+
+/* Create a subtle highlight effect that fades out */
+@keyframes highlight-fade {
+  0% {
+    background-color: rgba(37, 99, 235, 0.08); /* Match the active nav link background */
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    border-radius: 0.75rem;
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+/* Add a left indicator similar to active nav links */
+.highlighted-example::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background-color: var(--primary-color);
+  border-radius: 0 2px 2px 0;
+  animation: indicator-fade 2.5s ease-out forwards;
+}
+
+@keyframes indicator-fade {
+  0%, 70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Ensure examples have proper spacing and structure */
+.examples-section {
+  margin: 2rem 0;
+}
+
+.examples-section > div {
+  position: relative; /* For the highlight indicator */
+  margin-bottom: 1.5rem;
+}
+
+.examples-section > div:last-child {
+  margin-bottom: 0;
+}
+

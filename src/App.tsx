@@ -1,14 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import Navigation from '../components/Navigation';
-import TierSection from '../components/TierSection';
-import SearchBar from '../components/SearchBar';
-import SearchResults from '../components/SearchResults';
-import GuidedWorkflow from '../components/GuidedWorkflow';
+import Navigation from './components/Navigation';
+import TierSection from './components/TierSection';
+import SearchBar from './components/SearchBar';
+import SearchResults from './components/SearchResults';
+import GuidedWorkflow from './components/GuidedWorkflow';
 import { documentationData } from '../data/documentationData';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-import { ChecklistProgress } from '../types';
-import { enhancedSearch, SearchResultWithContext } from '../utils/searchUtils';
-import '../styles.css';
+import { useLocalStorage } from './hooks/useLocalStorage';
+import { ChecklistProgress } from './types';
+import { enhancedSearch, SearchResultWithContext } from './utils/searchUtils';
+import './styles.css';
+
+/**
+ * Parse a search result ID to determine if it's a valid section, subsection, or example
+ */
+function parseSearchResultId(id: string): {
+  isValid: boolean;
+  sectionId: string;
+} {
+  // Check if it's a direct section
+  if (documentationData[id]) {
+    return { isValid: true, sectionId: id };
+  }
+  
+  // Check if it's an example (format: "sectionId-example-index")
+  const exampleMatch = id.match(/^(.+)-example-(\d+)$/);
+  if (exampleMatch) {
+    const parentId = exampleMatch[1];
+    const exampleIndex = parseInt(exampleMatch[2], 10);
+    
+    // Check if the parent section exists and has the example
+    if (
+      documentationData[parentId] && 
+      documentationData[parentId].examples && 
+      documentationData[parentId].examples[exampleIndex]
+    ) {
+      return { isValid: true, sectionId: id };
+    }
+  }
+  
+  // Check if it's a subsection (format: "sectionId-subsectionId")
+  const parts = id.split('-');
+  if (parts.length > 1) {
+    const parentId = parts[0];
+    const subsectionId = parts[1];
+    
+    // Check if the parent section exists and has the subsection
+    if (
+      documentationData[parentId] && 
+      documentationData[parentId].subsections && 
+      documentationData[parentId].subsections[subsectionId]
+    ) {
+      return { isValid: true, sectionId: id };
+    }
+  }
+  
+  // If we get here, the ID is not valid
+  console.error(`Invalid search result ID: ${id}`);
+  return { isValid: false, sectionId: 'introduction' }; // Default to introduction
+}
 
 const App: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>('introduction');
@@ -31,13 +80,22 @@ const App: React.FC = () => {
   };
 
   const handleSearchResultClick = (id: string) => {
+    // Parse the search result ID to ensure it's valid
+    const { isValid, sectionId } = parseSearchResultId(id);
+    
     // Clear search state completely
     setSearchQuery('');
     setIsSearching(false);
     setSearchResults([]);
     
-    // Set the active section
-    setActiveSection(id);
+    // Set the active section if the ID is valid
+    if (isValid) {
+      setActiveSection(sectionId);
+    } else {
+      // If the ID is not valid, show an error and default to introduction
+      alert('The selected section could not be found. Returning to introduction.');
+      setActiveSection('introduction');
+    }
   };
 
   const clearSearch = () => {

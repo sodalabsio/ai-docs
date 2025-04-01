@@ -1,4 +1,4 @@
-import { DocumentationData } from '../types';
+import { DocumentationData } from '../src/types';
 
 export const documentationData: DocumentationData = {
   "introduction": {
